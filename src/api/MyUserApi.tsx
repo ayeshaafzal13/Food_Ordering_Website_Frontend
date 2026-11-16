@@ -1,13 +1,18 @@
 
 import type { User } from "@/types";
 import { useAuth0 } from "@auth0/auth0-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// GET CURRENT USER
 export const useGetMyUser = () => {
-    const { getAccessTokenSilently } = useAuth0();
+    const { getAccessTokenSilently, isAuthenticated } = useAuth0();
 
     const getMyUserRequest = async (): Promise<User> => {
         const accessToken = await getAccessTokenSilently();
@@ -16,13 +21,14 @@ export const useGetMyUser = () => {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
         });
 
-        if(!response.ok) {
+        if (!response.ok) {
             throw new Error("Failed to fetch user");
         }
+
         return response.json();
     };
 
@@ -30,15 +36,20 @@ export const useGetMyUser = () => {
         data: currentUser,
         isLoading,
         error,
-    } = useQuery("fetchCurrentUser", getMyUserRequest);
+    } = useQuery({
+        queryKey: ["fetchCurrentUser"],
+        queryFn: getMyUserRequest,
+        enabled: isAuthenticated,
+    });
 
     if (error) {
-        toast.error(error.toString());
+        console.error("Get user error:", error);
     }
 
     return { currentUser, isLoading };
 };
 
+// CREATE USER
 type CreateUserRequest = {
     auth0Id: string;
     email: string;
@@ -83,7 +94,8 @@ export const useCreateMyUser = () => {
     };
 };
 
-type UpdateMyUserRequest = {
+// UPDATE USER
+export type UpdateMyUserRequest = {
     name: string;
     addressLine1: string;
     city: string;
@@ -92,8 +104,11 @@ type UpdateMyUserRequest = {
 
 export const useUpdateMyUser = () => {
     const { getAccessTokenSilently } = useAuth0();
+    const queryClient = useQueryClient();
 
-    const UpdateMyUserRequest =  async (formData : UpdateMyUserRequest) => {
+    const updateMyUserRequest = async (
+        formData: UpdateMyUserRequest
+    ) => {
         const accessToken = await getAccessTokenSilently();
 
         const response = await fetch(`${API_BASE_URL}/api/my/user`, {
@@ -104,31 +119,33 @@ export const useUpdateMyUser = () => {
             },
             body: JSON.stringify(formData),
         });
-        
-        if(!response.ok) {
+
+        if (!response.ok) {
             throw new Error("Failed to update user");
         }
 
         return response.json();
-
     };
 
     const {
         mutateAsync: updateUser,
-        isLoading,
-        isSuccess,
-        error,
-        reset,
-    } = useMutation(UpdateMyUserRequest);
+        isPending,
+    } = useMutation({
+        mutationFn: updateMyUserRequest,
 
-    if(isSuccess) {
-        toast.success("User profile updated!");
-    }
+        onSuccess: async () => {
+            toast.success("User profile updated!");
 
-    if(error) {
-        toast.error(error.toString());
-        reset();
-    }
+            await queryClient.invalidateQueries({
+                queryKey: ["fetchCurrentUser"],
+            });
+        },
 
-    return { updateUser, isLoading };
+        onError: (error) => {
+            console.error("Update user error:", error);
+            toast.error(error.message);
+        },
+    });
+
+    return { updateUser, isPending };
 };

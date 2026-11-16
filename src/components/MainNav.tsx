@@ -12,9 +12,20 @@ const MainNav = () => {
         <Button
            variant = "ghost"
            className="font-bold hover:text-orange-500 hover:bg-white"
-           onClick={async () => await loginWithRedirect()}>
+          onClick={async () => {
+    try {
+        await loginWithRedirect({
+            authorizationParams: {
+                connection: "google-oauth2",
+            },
+        });
+    } catch (error) {
+        console.error("Google login error:", error);
+    }
+}} >
             Log In
            </Button> 
+
            )}
         </span>
     );

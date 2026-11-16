@@ -19,10 +19,15 @@ const AuthCallbackPage = () => {
 
         const createUserAndNavigate = async () => {
             try {
-                await createUser({
-                    auth0Id: user.sub,
-                    email: user.email!,
-                });
+                 if (!user?.sub || !user.email) {
+    console.error("User ID or email is missing from Auth0.");
+    return;
+}
+
+await createUser({
+    auth0Id: user.sub,
+    email: user.email,
+});
 
                 navigate("/", { replace: true });
             } catch (error) {
