@@ -1,175 +1,87 @@
-
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
+import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import type { User } from "@/types";
-import type { UpdateMyUserRequest } from "@/api/MyUserApi";
+import { useEffect } from "react";
 
 const formSchema = z.object({
-    email: z.string().optional(),
-    name: z.string().min(1, "Name is required"),
-    addressLine1: z.string().min(1, "Address Line 1 is required"),
-    city: z.string().min(1, "City is required"),
-    country: z.string().min(1, "Country is required"),
+  email: z.string().optional(),
+  name: z.string().min(1, "Name is required"),
+  addressLine1: z.string().min(1, "Address Line 1 is required"),
+  city: z.string().min(1, "City is required"),
+  country: z.string().min(1, "Country is required"),
 });
 
 type UserFormData = z.infer<typeof formSchema>;
 
 type Props = {
-    currentUser: User;
-    onSave: (userProfileData: UpdateMyUserRequest) => Promise<unknown>;
-    isLoading: boolean;
+  currentUser: User;
+  onSave: (userProfileData: UserFormData) => void;
+  isLoading: boolean;
 };
 
-const UserProfileForm = ({
-    onSave,
-    isLoading,
-    currentUser,
-}: Props) => {
-    const form = useForm<UserFormData>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            email: currentUser.email ?? "",
-            name: currentUser.name ?? "",
-            addressLine1: currentUser.addressLine1 ?? "",
-            city: currentUser.city ?? "",
-            country: currentUser.country ?? "",
-        },
-    });
+const UserProfileForm = ({ onSave, isLoading, currentUser }: Props) => {
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: currentUser,
+  });
 
-    useEffect(() => {
-        form.reset({
-            email: currentUser.email ?? "",
-            name: currentUser.name ?? "",
-            addressLine1: currentUser.addressLine1 ?? "",
-            city: currentUser.city ?? "",
-            country: currentUser.country ?? "",
-        });
-    }, [currentUser, form]);
+  useEffect(() => {
+    form.reset(currentUser);
+  }, [currentUser, form]);
 
-    const inputClass =
-        "w-full rounded-md border border-gray-300 bg-white px-3 py-2 outline-none focus:border-orange-500";
+  const textField = (name: keyof UserFormData, label: string, disabled = false) => (
+    <Controller
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <Field className="flex-1" data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={name}>{label}</FieldLabel>
+          <Input
+            {...field}
+            id={name}
+            value={field.value ?? ""}
+            disabled={disabled}
+            className="bg-white"
+          />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  );
 
-    return (
-        <div className="mx-auto max-w-4xl rounded-lg bg-gray-50 p-5 md:p-10">
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold">
-                    User Profile
-                </h2>
+  return (
+    <form
+      onSubmit={form.handleSubmit(onSave)}
+      className="space-y-4 bg-gray-50 rounded-lg md:p-10"
+    >
+      <div>
+        <h2 className="text-2xl font-bold">User Profile</h2>
+        <FieldDescription>View and change your profile information here</FieldDescription>
+      </div>
 
-                <p className="mt-2 text-sm text-gray-600">
-                    View and change your profile information here.
-                </p>
-            </div>
+      {textField("email", "Email", true)}
+      {textField("name", "Name")}
 
-            <form
-                onSubmit={form.handleSubmit(async (data) => {
-                    const { name, addressLine1, city, country } = data;
+      <div className="flex flex-col md:flex-row gap-4">
+        {textField("addressLine1", "Address Line 1")}
+        {textField("city", "City")}
+        {textField("country", "Country")}
+      </div>
 
-                    await onSave({
-                        name,
-                        addressLine1,
-                        city,
-                        country,
-                    });
-                })}
-                className="space-y-5"
-            >
-                <div>
-                    <label className="mb-2 block font-medium">
-                        Email
-                    </label>
-
-                    <input
-                        {...form.register("email")}
-                        disabled
-                        className={`${inputClass} bg-gray-100`}
-                    />
-                </div>
-
-                <div>
-                    <label className="mb-2 block font-medium">
-                        Name
-                    </label>
-
-                    <input
-                        {...form.register("name")}
-                        className={inputClass}
-                    />
-
-                    {form.formState.errors.name && (
-                        <p className="mt-1 text-sm text-red-500">
-                            {form.formState.errors.name.message}
-                        </p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="mb-2 block font-medium">
-                        Address Line 1
-                    </label>
-
-                    <input
-                        {...form.register("addressLine1")}
-                        className={inputClass}
-                    />
-
-                    {form.formState.errors.addressLine1 && (
-                        <p className="mt-1 text-sm text-red-500">
-                            {form.formState.errors.addressLine1.message}
-                        </p>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block font-medium">
-                            City
-                        </label>
-
-                        <input
-                            {...form.register("city")}
-                            className={inputClass}
-                        />
-
-                        {form.formState.errors.city && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {form.formState.errors.city.message}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block font-medium">
-                            Country
-                        </label>
-
-                        <input
-                            {...form.register("country")}
-                            className={inputClass}
-                        />
-
-                        {form.formState.errors.country && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {form.formState.errors.country.message}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="bg-orange-500 hover:bg-orange-600"
-                >
-                    {isLoading ? "Updating..." : "Update Profile"}
-                </Button>
-            </form>
-        </div>
-    );
+      {isLoading ? (
+        <LoadingButton />
+      ) : (
+        <Button type="submit" className="bg-orange-500">
+          Submit
+        </Button>
+      )}
+    </form>
+  );
 };
 
 export default UserProfileForm;

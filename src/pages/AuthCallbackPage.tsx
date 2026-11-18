@@ -4,43 +4,21 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AuthCallbackPage = () => {
-    const navigate = useNavigate();
-    const { user, isLoading } = useAuth0();
-    const { createUser } = useCreateMyUser();
+  const navigate = useNavigate();
+  const { user } = useAuth0();
+  const { createUser } = useCreateMyUser();
 
-    const hasCreatedUser = useRef(false);
+  const hasCreatedUser = useRef(false);
 
-    useEffect(() => {
-        if (isLoading || !user?.sub || !user?.email || hasCreatedUser.current) {
-            return;
-        }
+  useEffect(() => {
+    if (user?.sub && user?.email && !hasCreatedUser.current) {
+      createUser({ auth0Id: user.sub, email: user.email });
+      hasCreatedUser.current = true;
+    }
+    navigate("/");
+  }, [createUser, navigate, user]);
 
-        hasCreatedUser.current = true;
-
-        const createUserAndNavigate = async () => {
-            try {
-                 if (!user?.sub || !user.email) {
-    console.error("User ID or email is missing from Auth0.");
-    return;
-}
-
-await createUser({
-    auth0Id: user.sub,
-    email: user.email,
-});
-
-                navigate("/", { replace: true });
-            } catch (error) {
-                hasCreatedUser.current = false;
-                console.error("Error creating user:", error);
-            }
-        };
-
-        createUserAndNavigate();
-
-    }, [createUser, navigate, user, isLoading]);
-
-    return <>Loading...</>;
+  return <>Loading...</>;
 };
 
 export default AuthCallbackPage;
