@@ -17,8 +17,12 @@ const formSchema = z
     restaurantName: z.string().min(1, "restaurant name is required"),
     city: z.string().min(1, "city is required"),
     country: z.string().min(1, "country is required"),
-    deliveryPrice: z.coerce.number({ error: "must be a valid number" }),
-    estimatedDeliveryTime: z.coerce.number({ error: "must be a valid number" }),
+    deliveryPrice: z.coerce.number({
+  invalid_type_error: "must be a valid number",
+}),
+estimatedDeliveryTime: z.coerce.number({
+  invalid_type_error: "must be a valid number",
+}),
     cuisines: z.array(z.string()).nonempty({
       message: "please select at least one item",
     }),
